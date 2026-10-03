@@ -26,6 +26,13 @@ export const CamIcon = ({ off }: { off?: boolean }) => (
   </svg>
 )
 
+export const NoiseIcon = ({ off }: { off?: boolean }) => (
+  <svg {...base}>
+    <path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4" />
+    {off && <path d="M3 3l18 18" />}
+  </svg>
+)
+
 export const SendIcon = () => (
   <svg {...base}>
     <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />

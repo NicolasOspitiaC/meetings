@@ -3,7 +3,7 @@ import { MAX_PARTICIPANTS } from '../lib/protocol'
 import { roomClient, type RoomSnapshot } from '../lib/roomClient'
 import { ChatPanel } from './ChatPanel'
 import { CopyButton, roomLink } from './CopyButton'
-import { CamIcon, ChatIcon, MicIcon } from './icons'
+import { CamIcon, ChatIcon, MicIcon, NoiseIcon } from './icons'
 import { ParticipantTile } from './ParticipantTile'
 
 interface Props {
@@ -79,6 +79,17 @@ export function RoomView({ room }: Props) {
               onClick={() => roomClient.toggleVideo()}
             >
               <CamIcon off={!room.video} />
+            </button>
+            <button
+              type="button"
+              className={room.noiseSuppression ? 'control active' : 'control'}
+              disabled={room.mediaBusy}
+              aria-pressed={room.noiseSuppression}
+              aria-label={room.noiseSuppression ? 'Desactivar supresión de ruido' : 'Activar supresión de ruido'}
+              title={room.noiseSuppression ? 'Supresión de ruido activada' : 'Supresión de ruido desactivada'}
+              onClick={() => roomClient.toggleNoiseSuppression()}
+            >
+              <NoiseIcon off={!room.noiseSuppression} />
             </button>
             <button
               type="button"

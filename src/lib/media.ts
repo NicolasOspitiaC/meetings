@@ -8,6 +8,7 @@ export async function buildStream(
   prev: MediaStream | null,
   audio: boolean,
   video: boolean,
+  noiseSuppression: boolean,
 ): Promise<MediaStream | null> {
   const prevAudio = prev?.getAudioTracks()[0]
   const prevVideo = prev?.getVideoTracks()[0]
@@ -20,7 +21,7 @@ export async function buildStream(
       throw new Error('insecure-context')
     }
     const fresh = await navigator.mediaDevices.getUserMedia({
-      audio: needAudio ? { echoCancellation: true, noiseSuppression: true } : false,
+      audio: needAudio ? { echoCancellation: true, noiseSuppression } : false,
       video: needVideo ? { width: { ideal: 640 }, height: { ideal: 360 }, aspectRatio: { ideal: 16 / 9 } } : false,
     })
     acquired = fresh.getTracks()
@@ -38,6 +39,20 @@ export async function buildStream(
 
   const tracks = [...kept, ...acquired]
   return tracks.length > 0 ? new MediaStream(tracks) : null
+}
+
+/**
+ * Turns the browser's noise suppression on or off for a live microphone track.
+ * Returns false when the browser rejects or ignores the change, so the caller can reopen the microphone instead.
+ */
+export async function setNoiseSuppression(track: MediaStreamTrack, enabled: boolean): Promise<boolean> {
+  try {
+    await track.applyConstraints({ ...track.getConstraints(), noiseSuppression: enabled })
+  } catch {
+    return false
+  }
+  const actual = track.getSettings().noiseSuppression
+  return actual === undefined || actual === enabled
 }
 
 export function stopStream(stream: MediaStream | null) {

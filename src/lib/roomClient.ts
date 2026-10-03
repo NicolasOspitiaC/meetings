@@ -1,5 +1,6 @@
 import Peer, { type DataConnection, type MediaConnection } from 'peerjs'
-import { buildStream, mediaErrorMessage, stopStream } from './media'
+import { buildStream, mediaErrorMessage, setNoiseSuppression, stopStream } from './media'
+import { createNoiseFilter, noiseFilterAvailable, preloadNoiseFilter, type NoiseFilter } from './noiseFilter'
 import {
   parseGuestMessage,
   parseHostMessage,
@@ -46,8 +47,15 @@ export interface RoomSnapshot {
   remoteStreams: Record<string, MediaStream>
   audio: boolean
   video: boolean
+  noiseSuppression: boolean
   mediaBusy: boolean
   error: string | null
+}
+
+interface MediaPrefs {
+  audio: boolean
+  video: boolean
+  noiseSuppression: boolean
 }
 
 const INITIAL: RoomSnapshot = {
@@ -62,6 +70,7 @@ const INITIAL: RoomSnapshot = {
   remoteStreams: {},
   audio: false,
   video: false,
+  noiseSuppression: true,
   mediaBusy: false,
   error: null,
 }
@@ -108,7 +117,10 @@ export class RoomClient {
   private outCalls = new Map<string, MediaConnection>()
   private inCalls = new Map<string, MediaConnection>()
   private pendingCalls = new Map<string, MediaConnection>()
-  private desiredMedia = { audio: false, video: false }
+  private desiredMedia: MediaPrefs = { audio: false, video: false, noiseSuppression: true }
+  /** Tracks as getUserMedia returned them; `snapshot.localStream` has the filtered microphone instead. */
+  private rawStream: MediaStream | null = null
+  private noiseFilter: NoiseFilter | null = null
   private mediaQueue: Promise<void> = Promise.resolve()
 
   subscribe = (listener: () => void) => {
@@ -135,6 +147,7 @@ export class RoomClient {
   start(name: string) {
     if (this.peer) return
     this.update({ name: sanitizeName(name), status: 'connecting', error: null })
+    preloadNoiseFilter()
     this.createPeer(loadStoredCode() ?? generateRoomCode())
   }
 
@@ -433,9 +446,13 @@ export class RoomClient {
   private resetToLobby(error: string | null) {
     this.clearJoinTimer()
     this.closeAllCalls()
-    stopStream(this.snapshot.localStream)
+    this.noiseFilter?.stop()
+    this.noiseFilter = null
+    stopStream(this.rawStream)
+    this.rawStream = null
     this.hostState = null
-    this.desiredMedia = { audio: false, video: false }
+    // The noise suppression preference carries over to the next room.
+    this.desiredMedia = { ...this.desiredMedia, audio: false, video: false }
     this.update({
       status: this.peer ? 'lobby' : 'idle',
       role: null,
@@ -454,42 +471,124 @@ export class RoomClient {
   // ---------------------------------------------------------------- media
 
   toggleAudio() {
-    this.setMedia(!this.desiredMedia.audio, this.desiredMedia.video)
+    this.setMedia({ audio: !this.desiredMedia.audio })
   }
 
   toggleVideo() {
-    this.setMedia(this.desiredMedia.audio, !this.desiredMedia.video)
+    this.setMedia({ video: !this.desiredMedia.video })
   }
 
-  private setMedia(audio: boolean, video: boolean) {
+  toggleNoiseSuppression() {
+    this.setMedia({ noiseSuppression: !this.desiredMedia.noiseSuppression })
+  }
+
+  private setMedia(patch: Partial<MediaPrefs>) {
     if (this.snapshot.status !== 'in-room') return
-    this.desiredMedia = { audio, video }
+    this.desiredMedia = { ...this.desiredMedia, ...patch }
     this.mediaQueue = this.mediaQueue
       .then(() => this.applyMedia())
       .catch(() => this.update({ mediaBusy: false, error: 'No se pudo actualizar la cámara o el micrófono.' }))
   }
 
   private async applyMedia() {
-    const { audio, video } = this.desiredMedia
+    if (this.snapshot.status !== 'in-room') return
+    if (this.desiredMedia.noiseSuppression !== this.snapshot.noiseSuppression) await this.applyNoiseSuppression()
+
+    const { audio, video, noiseSuppression } = this.desiredMedia
     if (this.snapshot.status !== 'in-room') return
     if (audio === this.snapshot.audio && video === this.snapshot.video) return
 
     this.update({ mediaBusy: true })
-    let stream: MediaStream | null
+    // With the AI filter the browser's own suppression stays off: stacking both muffles the voice.
+    const browserSuppression = audio && noiseSuppression && !(await noiseFilterAvailable())
+    let raw: MediaStream | null
     try {
-      stream = await buildStream(this.snapshot.localStream, audio, video)
+      raw = await buildStream(this.rawStream, audio, video, browserSuppression)
     } catch (error) {
-      this.desiredMedia = { audio: this.snapshot.audio, video: this.snapshot.video }
+      this.desiredMedia = { ...this.desiredMedia, audio: this.snapshot.audio, video: this.snapshot.video }
       this.update({ mediaBusy: false, error: mediaErrorMessage(error) })
       return
     }
 
     if (this.snapshot.status !== 'in-room') {
       // Left the room while the browser was asking for permission.
-      stopStream(stream)
+      stopStream(raw)
       return
     }
 
+    await this.publishLocalStream(raw, audio, video)
+  }
+
+  private async applyNoiseSuppression() {
+    const { audio, noiseSuppression } = this.desiredMedia
+    const raw = this.rawStream
+    const track = raw?.getAudioTracks()[0]
+    if (this.noiseFilter || !raw || !track || !audio) {
+      // The AI filter just reroutes the audio; with the microphone off the setting is used the next time it opens.
+      this.noiseFilter?.setEnabled(noiseSuppression)
+      this.update({ noiseSuppression })
+      return
+    }
+
+    // No AI filter in this browser: fall back to its own noise suppression.
+    this.update({ mediaBusy: true })
+    if (await setNoiseSuppression(track, noiseSuppression)) {
+      // Same track, so the open calls pick up the change without being restarted.
+      this.update({ noiseSuppression, mediaBusy: false })
+      return
+    }
+
+    // The browser can't change it on a live track: reopen the microphone with the new setting.
+    // The old track goes first because some browsers share one audio pipeline per device.
+    track.stop()
+    const { video } = this.snapshot
+    const videoTracks = raw.getVideoTracks()
+    const withoutAudio = videoTracks.length > 0 ? new MediaStream(videoTracks) : null
+    let stream: MediaStream | null
+    try {
+      stream = await buildStream(withoutAudio, true, video, noiseSuppression)
+    } catch (error) {
+      if (this.snapshot.status !== 'in-room') return
+      this.desiredMedia = { ...this.desiredMedia, audio: false }
+      this.update({ noiseSuppression, error: mediaErrorMessage(error) })
+      await this.publishLocalStream(withoutAudio, false, video)
+      return
+    }
+
+    if (this.snapshot.status !== 'in-room') {
+      stopStream(stream)
+      return
+    }
+    this.update({ noiseSuppression })
+    await this.publishLocalStream(stream, true, video)
+  }
+
+  /**
+   * Makes `raw` the local media, with the microphone going through the noise filter,
+   * re-sends it to everyone and tells the room about the media state.
+   */
+  private async publishLocalStream(raw: MediaStream | null, audio: boolean, video: boolean) {
+    this.rawStream = raw
+    const mic = raw?.getAudioTracks()[0] ?? null
+    if (this.noiseFilter && this.noiseFilter.input !== mic) {
+      this.noiseFilter.stop()
+      this.noiseFilter = null
+    }
+    if (mic && !this.noiseFilter) {
+      const filter = await createNoiseFilter(mic, this.snapshot.noiseSuppression)
+      if (this.snapshot.status !== 'in-room') {
+        filter?.stop()
+        return
+      }
+      this.noiseFilter = filter
+      // The microphone was opened expecting the filter; without it, use the browser's suppression.
+      if (!filter && this.snapshot.noiseSuppression) void setNoiseSuppression(mic, true)
+    }
+
+    const tracks = [this.noiseFilter?.output ?? mic, ...(raw?.getVideoTracks() ?? [])].filter(
+      (track): track is MediaStreamTrack => track !== null,
+    )
+    const stream = tracks.length > 0 ? new MediaStream(tracks) : null
     this.update({ localStream: stream, audio, video, mediaBusy: false })
     this.outCalls.forEach((call) => call.close())
     this.outCalls.clear()

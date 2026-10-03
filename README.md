@@ -10,6 +10,8 @@ Chat y videollamada de hasta **5 personas**, 100 % frontend (React + TypeScript 
 4. En la sala las cámaras ocupan el centro y el chat va en un panel lateral que se oculta o muestra con un botón
    (muestra los mensajes sin leer). Cada quien activa o desactiva su **micrófono** y **cámara** cuando quiera
    (empiezan apagados, el navegador pide permiso la primera vez).
+5. La **cancelación de ruido** (botón de la onda de sonido) viene activada: un modelo de IA (GTCRN) que corre en el
+   navegador quita el ruido de fondo y deja la voz. Si el navegador no puede ejecutarlo, se usa su supresión nativa.
 
 - El chat y la lista de participantes pasan por el anfitrión; el audio/video va directo entre cada par de personas.
 - Si el anfitrión cierra la sala o se va, la sala termina para todos.
@@ -36,5 +38,6 @@ npm run build    # build de producción en dist/
 | `src/lib/protocol.ts` | Tipos y validación de los mensajes entre pares |
 | `src/lib/room.ts` | Lógica pura del anfitrión (límite de 5, participantes, historial) y códigos de sala |
 | `src/lib/media.ts` | Construcción del stream local de cámara/micrófono |
+| `src/lib/noiseFilter.ts` | Cancelación de ruido con IA (GTCRN en un AudioWorklet) |
 | `src/lib/roomClient.ts` | Orquestación PeerJS (conexiones de datos y llamadas) |
 | `src/components/` | Pantallas: nombre, lobby, sala (chat + participantes) |

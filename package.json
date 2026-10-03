@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@sapphi-red/web-noise-suppressor": "^0.4.1",
     "peerjs": "^1.5.5",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
