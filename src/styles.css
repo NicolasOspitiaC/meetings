@@ -1,0 +1,650 @@
+:root {
+  --bg: #f4f5f8;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --border: #dcdfe6;
+  --text: #1b1d23;
+  --muted: #646a78;
+  --accent: #4f46e5;
+  --accent-text: #ffffff;
+  --accent-soft: #e6e5fc;
+  --danger: #d33a3a;
+  --mine: #e6e5fc;
+  --tile: #20232b;
+  --stage: #e9ebf0;
+  --control: #3a3f4b;
+  --radius: 12px;
+  color-scheme: light;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111318;
+    --surface: #1a1d24;
+    --surface-2: #232731;
+    --border: #2e3340;
+    --text: #e8eaf0;
+    --muted: #9aa1b2;
+    --accent: #7c74ff;
+    --accent-text: #ffffff;
+    --accent-soft: #2b2a4d;
+    --danger: #ef5b5b;
+    --mine: #2b2a4d;
+    --tile: #0c0e12;
+    --stage: #0b0d11;
+    --control: #2e3340;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+h2 {
+  font-size: 1rem;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.mono {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  letter-spacing: 0.08em;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ---------------------------------------------------------------- controls */
+
+button,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+input,
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+input:focus-visible,
+textarea:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  background: var(--surface-2);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: var(--accent);
+  color: var(--accent-text);
+}
+
+button.secondary {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+button.danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+button.small {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+button.link {
+  background: none;
+  padding: 0;
+  color: var(--accent);
+  font-weight: 500;
+  align-self: flex-start;
+}
+
+button.icon-button {
+  background: none;
+  padding: 0 4px;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+button.icon-only {
+  padding: 10px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  margin-left: 6px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.error-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: min(560px, calc(100% - 32px));
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--danger);
+  color: #fff;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+}
+
+.error-banner span {
+  flex: 1;
+}
+
+/* ---------------------------------------------------------------- name & lobby */
+
+.center-screen {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.name-card {
+  width: min(400px, 100%);
+}
+
+.name-card label {
+  font-weight: 600;
+}
+
+.lobby {
+  display: grid;
+  gap: 16px;
+  width: min(560px, 100%);
+}
+
+.lobby-header {
+  display: grid;
+  gap: 6px;
+}
+
+.room-code {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: var(--accent);
+}
+
+.join-form {
+  display: flex;
+  gap: 8px;
+}
+
+.join-form input {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------- room */
+
+.room {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.room-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.room-title {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.room-title h1 {
+  font-size: 1.15rem;
+}
+
+.room-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.room-body.chat-open {
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+/* stage: cameras are the main focus */
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+  background: var(--stage);
+}
+
+.tiles {
+  --cols: 1;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.tiles[data-count='2'],
+.tiles[data-count='3'],
+.tiles[data-count='4'] {
+  --cols: 2;
+}
+
+.tiles[data-count='5'] {
+  --cols: 6;
+}
+
+/* 5 people: three on top and two centered below */
+.tiles[data-count='5'] .tile-slot {
+  grid-column: span 2;
+}
+
+.tiles[data-count='5'] .tile-slot:nth-child(4) {
+  grid-column: 2 / span 2;
+}
+
+/* 3 people: the last one is centered on the second row */
+.tiles[data-count='3'] .tile-slot:nth-child(3) {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: calc(50% - 6px);
+}
+
+/* The slot is the grid cell; the tile inside keeps a 16:9 screen shape and is as large as fits. */
+.tile-slot {
+  min-width: 0;
+  min-height: 0;
+  container-type: size;
+  display: grid;
+  place-items: center;
+}
+
+.tile {
+  position: relative;
+  width: min(100cqw, calc(100cqh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--tile);
+  display: grid;
+  place-items: center;
+}
+
+.tile video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Frames of another shape (e.g. a phone held upright) are fitted inside, with black bars. */
+  object-fit: contain;
+  background: #000;
+}
+
+.tile video.mirrored {
+  transform: scaleX(-1);
+}
+
+.tile video.hidden {
+  display: none;
+}
+
+.avatar {
+  width: clamp(56px, 22%, 112px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #111;
+}
+
+.tile-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  color: #fff;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.7));
+}
+
+.tile-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tile-label .badge {
+  background: rgb(255 255 255 / 0.18);
+  color: #fff;
+}
+
+.tile-status {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.tile-status svg {
+  width: 16px;
+  height: 16px;
+}
+
+.tile-status .off {
+  color: #ff8a8a;
+}
+
+/* control bar */
+
+.media-controls {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.control {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--control);
+  color: #fff;
+}
+
+.control:hover:not(:disabled) {
+  filter: brightness(1.15);
+}
+
+.control.off {
+  background: var(--danger);
+}
+
+.control.active {
+  background: var(--accent);
+}
+
+.unread {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  border: 2px solid var(--stage);
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.7rem;
+  line-height: 16px;
+}
+
+/* chat sidebar */
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.chat[hidden] {
+  display: none;
+}
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+button.ghost {
+  background: none;
+  color: var(--muted);
+}
+
+button.ghost:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  margin: 0;
+  padding: 16px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.message {
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  align-self: flex-start;
+}
+
+.message.mine {
+  align-self: flex-end;
+  background: var(--mine);
+  border-color: transparent;
+}
+
+.message.system {
+  align-self: center;
+  max-width: 90%;
+  padding: 2px 10px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.message-meta {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 0.8rem;
+}
+
+.message-author {
+  font-weight: 700;
+}
+
+.message-meta time {
+  color: var(--muted);
+}
+
+.message-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.composer {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.composer textarea {
+  resize: none;
+  max-height: 140px;
+  field-sizing: content;
+}
+
+/* ---------------------------------------------------------------- tablet & mobile */
+
+/* Narrow screens: the chat floats over the cameras instead of taking a column. */
+@media (max-width: 960px) {
+  .room-body.chat-open {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .chat {
+    position: absolute;
+    inset: 0 0 0 auto;
+    z-index: 5;
+    width: min(380px, 100%);
+    box-shadow: -8px 0 24px rgb(0 0 0 / 0.25);
+  }
+}
+
+@media (max-width: 760px) {
+  .stage {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .tiles {
+    gap: 8px;
+  }
+
+  .tiles[data-count='2'] {
+    --cols: 1;
+  }
+
+  .tiles[data-count='5'] {
+    --cols: 2;
+  }
+
+  .tiles[data-count='5'] .tile-slot,
+  .tiles[data-count='5'] .tile-slot:nth-child(4) {
+    grid-column: auto;
+  }
+
+  .tiles[data-count='3'] .tile-slot:nth-child(3),
+  .tiles[data-count='5'] .tile-slot:nth-child(5) {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    width: auto;
+  }
+
+  .avatar {
+    font-size: 1.3rem;
+  }
+
+  .tile-label {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
+
+  .join-form {
+    flex-direction: column;
+  }
+}
