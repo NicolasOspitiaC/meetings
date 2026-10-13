@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import type { ChatMessage } from '../lib/protocol'
 import { colorFor } from './colors'
+import { EmojiPicker } from './EmojiPicker'
 import { CloseIcon, SendIcon } from './icons'
 
 interface Props {
@@ -11,12 +12,15 @@ interface Props {
   onClose: () => void
 }
 
+const MAX_LENGTH = 2000
+
 const timeFormat = new Intl.DateTimeFormat('es', { hour: '2-digit', minute: '2-digit' })
 
 export function ChatPanel({ messages, myId, onSend, open, onClose }: Props) {
   const [draft, setDraft] = useState('')
   const listRef = useRef<HTMLOListElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const caretRef = useRef<number | null>(null)
 
   // While hidden the list has no height, so it also re-scrolls when the panel opens again.
   useEffect(() => {
@@ -27,6 +31,25 @@ export function ChatPanel({ messages, myId, onSend, open, onClose }: Props) {
   useEffect(() => {
     if (open) inputRef.current?.focus()
   }, [open])
+
+  // Puts the caret back right after an inserted emoji once the new draft is rendered.
+  useLayoutEffect(() => {
+    const input = inputRef.current
+    if (caretRef.current === null || !input) return
+    input.focus()
+    input.setSelectionRange(caretRef.current, caretRef.current)
+    caretRef.current = null
+  }, [draft])
+
+  const insertEmoji = (emoji: string) => {
+    const input = inputRef.current
+    const start = input?.selectionStart ?? draft.length
+    const end = input?.selectionEnd ?? draft.length
+    const next = draft.slice(0, start) + emoji + draft.slice(end)
+    if (next.length > MAX_LENGTH) return
+    caretRef.current = start + emoji.length
+    setDraft(next)
+  }
 
   const submit = (event?: FormEvent) => {
     event?.preventDefault()
@@ -70,13 +93,14 @@ export function ChatPanel({ messages, myId, onSend, open, onClose }: Props) {
         )}
       </ol>
       <form className="composer" onSubmit={submit}>
+        <EmojiPicker onPick={insertEmoji} />
         <textarea
           ref={inputRef}
           aria-label="Escribe un mensaje"
           placeholder="Escribe un mensaje…"
           title="Enter para enviar, Shift+Enter para salto de línea"
           rows={1}
-          maxLength={2000}
+          maxLength={MAX_LENGTH}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={onKeyDown}

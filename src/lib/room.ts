@@ -84,3 +84,12 @@ export function sanitizeName(name: string): string {
 export function sanitizeText(text: string): string {
   return text.trim().slice(0, MAX_TEXT_LENGTH)
 }
+
+/**
+ * Messages from other people that arrived after `lastSeenId`.
+ * If that id is no longer in the list, every message counts as new.
+ */
+export function incomingSince(messages: ChatMessage[], lastSeenId: string | undefined, myId: string): ChatMessage[] {
+  const start = messages.findIndex((message) => message.id === lastSeenId) + 1
+  return messages.slice(start).filter((message) => !message.system && message.fromId !== myId)
+}

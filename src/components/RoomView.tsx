@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MAX_PARTICIPANTS } from '../lib/protocol'
+import { incomingSince } from '../lib/room'
 import { roomClient, type RoomSnapshot } from '../lib/roomClient'
+import { playMessageSound } from '../lib/sound'
 import { ChatPanel } from './ChatPanel'
 import { CopyButton, roomLink } from './CopyButton'
 import { CamIcon, ChatIcon, MicIcon, NoiseIcon } from './icons'
@@ -20,6 +22,13 @@ export function RoomView({ room }: Props) {
   // Everything is "seen" while the chat is visible; unread only counts other people's messages.
   if (chatOpen && seenCount !== room.messages.length) setSeenCount(room.messages.length)
   const unread = room.messages.slice(seenCount).filter((message) => !message.system && message.fromId !== myId).length
+
+  // Chime for messages from other people; the history already there on entering stays silent.
+  const lastMessageId = useRef(room.messages.at(-1)?.id)
+  useEffect(() => {
+    if (incomingSince(room.messages, lastMessageId.current, myId).length > 0) playMessageSound()
+    lastMessageId.current = room.messages.at(-1)?.id
+  }, [room.messages, myId])
 
   return (
     <div className="room">

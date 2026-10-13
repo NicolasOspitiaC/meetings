@@ -4,7 +4,9 @@ import {
   addParticipant,
   appendMessage,
   createHostState,
+  chatMessage,
   generateRoomCode,
+  incomingSince,
   isValidCode,
   normalizeCode,
   removeParticipant,
@@ -119,5 +121,28 @@ describe('sanitizers', () => {
   it('trims and limits chat text', () => {
     expect(sanitizeText('  hola  ')).toBe('hola')
     expect(sanitizeText('y'.repeat(5000))).toHaveLength(2000)
+  })
+})
+
+describe('incomingSince', () => {
+  const me = person('ME')
+  const other = person('OTHER')
+
+  it('returns only messages from other people after the last seen one', () => {
+    const seen = chatMessage(other, 'hola')
+    const mine = chatMessage(me, 'qué tal')
+    const theirs = chatMessage(other, '👋')
+    const messages = [seen, systemMessage('Alguien se unió'), mine, theirs]
+    expect(incomingSince(messages, seen.id, 'ME')).toEqual([theirs])
+  })
+
+  it('returns nothing when the last seen message is still the newest', () => {
+    const last = chatMessage(other, 'hola')
+    expect(incomingSince([last], last.id, 'ME')).toEqual([])
+  })
+
+  it('treats every message as new when the last seen id is unknown', () => {
+    const theirs = chatMessage(other, 'hola')
+    expect(incomingSince([theirs], undefined, 'ME')).toEqual([theirs])
   })
 })
