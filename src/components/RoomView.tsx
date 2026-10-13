@@ -18,10 +18,26 @@ export function RoomView({ room }: Props) {
   // On narrow screens the chat covers the cameras, so it starts hidden there.
   const [chatOpen, setChatOpen] = useState(() => !window.matchMedia('(max-width: 960px)').matches)
   const [seenCount, setSeenCount] = useState(room.messages.length)
+  const [pageVisible, setPageVisible] = useState(() => document.visibilityState === 'visible')
 
-  // Everything is "seen" while the chat is visible; unread only counts other people's messages.
-  if (chatOpen && seenCount !== room.messages.length) setSeenCount(room.messages.length)
+  useEffect(() => {
+    const onVisibilityChange = () => setPageVisible(document.visibilityState === 'visible')
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange)
+  }, [])
+
+  // Everything is "seen" while the chat is on screen; unread only counts other people's messages.
+  if (chatOpen && pageVisible && seenCount !== room.messages.length) setSeenCount(room.messages.length)
   const unread = room.messages.slice(seenCount).filter((message) => !message.system && message.fromId !== myId).length
+
+  // Shows the unread count in the browser tab, e.g. "(3) Meetings".
+  useEffect(() => {
+    const baseTitle = document.title
+    if (unread > 0) document.title = `(${unread > 99 ? '99+' : unread}) ${baseTitle}`
+    return () => {
+      document.title = baseTitle
+    }
+  }, [unread])
 
   // Chime for messages from other people; the history already there on entering stays silent.
   const lastMessageId = useRef(room.messages.at(-1)?.id)
